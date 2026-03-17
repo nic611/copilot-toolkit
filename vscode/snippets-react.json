@@ -1,0 +1,96 @@
+{
+  "React Function Component": {
+    "prefix": "rfc",
+    "body": [
+      "function ${1:ComponentName}({ ${2:props} }) {",
+      "  return (",
+      "    <div>",
+      "      $0",
+      "    </div>",
+      "  );",
+      "}",
+      "",
+      "export default ${1:ComponentName};"
+    ],
+    "description": "React Function Component"
+  },
+  "React Function Component with TypeScript": {
+    "prefix": "rfct",
+    "body": [
+      "interface ${1:ComponentName}Props {",
+      "  $2",
+      "}",
+      "",
+      "function ${1:ComponentName}({ $3 }: ${1:ComponentName}Props) {",
+      "  return (",
+      "    <div>",
+      "      $0",
+      "    </div>",
+      "  );",
+      "}",
+      "",
+      "export default ${1:ComponentName};"
+    ],
+    "description": "React FC with TypeScript interface"
+  },
+  "useState": {
+    "prefix": "ust",
+    "body": "const [${1:state}, set${1/(.*)/${1:/capitalize}/}] = useState(${2:initialValue});",
+    "description": "useState hook"
+  },
+  "useEffect": {
+    "prefix": "uef",
+    "body": [
+      "useEffect(() => {",
+      "  ${1:// effect}",
+      "  return () => {",
+      "    ${2:// cleanup}",
+      "  };",
+      "}, [${3:deps}]);"
+    ],
+    "description": "useEffect hook"
+  },
+  "useRef": {
+    "prefix": "urf",
+    "body": "const ${1:ref} = useRef<${2:HTMLDivElement}>(null);",
+    "description": "useRef hook"
+  },
+  "useSelector": {
+    "prefix": "usl",
+    "body": "const ${1:data} = useSelector((state) => state.${2:slice}.${1:data});",
+    "description": "Redux useSelector"
+  },
+  "useDispatch": {
+    "prefix": "udp",
+    "body": "const dispatch = useDispatch();",
+    "description": "Redux useDispatch"
+  },
+  "React Testing Library Test": {
+    "prefix": "rtlt",
+    "body": [
+      "import { render, screen } from '@testing-library/react';",
+      "import userEvent from '@testing-library/user-event';",
+      "import ${1:ComponentName} from './${1:ComponentName}';",
+      "",
+      "describe('${1:ComponentName}', () => {",
+      "  it('should render correctly', () => {",
+      "    render(<${1:ComponentName} />);",
+      "    expect(screen.getByText(${2:'expected text'})).toBeInTheDocument();",
+      "  });",
+      "",
+      "  it('should handle user interaction', async () => {",
+      "    const user = userEvent.setup();",
+      "    render(<${1:ComponentName} />);",
+      "    await user.click(screen.getByRole('button'));",
+      "    $0",
+      "  });",
+      "});"
+    ],
+    "description": "RTL test boilerplate"
+  },
+  "Console Debug (easy to find & delete)": {
+    "prefix": "cdb",
+    "body": "console.log('🔴 ${1:label}:', ${2:variable});",
+    "description": "Debug log with emoji marker"
+  }
+}

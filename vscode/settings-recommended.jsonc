@@ -1,0 +1,44 @@
+// VS Code Recommended Settings for Copilot + Migration Workflow
+// 複製需要嘅部分到你工作 repo 嘅 .vscode/settings.json
+{
+  // === Copilot ===
+  "chat.promptFiles": true,
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+  "github.copilot.chat.agent.enabled": true,
+
+  // === Editor ===
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.inlineSuggest.enabled": true,
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+
+  // === File Associations ===
+  "files.associations": {
+    "*.jsx": "javascriptreact",
+    "*.tsx": "typescriptreact"
+  },
+
+  // === Search (排除干擾) ===
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/coverage": true,
+    "**/.next": true
+  },
+
+  // === TypeScript (寬鬆模式，適合遷移期) ===
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.suggest.autoImports": true,
+
+  // === Terminal ===
+  "terminal.integrated.scrollback": 10000
+}
