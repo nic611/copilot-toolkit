@@ -248,3 +248,402 @@ vi.mock('./api');
 之後:  如果換 Vite → 順便換 Vitest
 否則:  Jest 繼續用，冇問題
 ```
+
+---
+
+## 完整對比：同一個 Test，Enzyme vs RTL vs Vitest
+
+> 場景：測試 LoginForm component — 渲染、填表、提交、error handling、async。
+
+### 被測 Component（三者共用）
+
+```jsx
+// LoginForm.jsx
+import React, { useState } from 'react';
+
+export default function LoginForm({ onSubmit }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!email) { setError('Email is required'); return; }
+    if (!password) { setError('Password is required'); return; }
+    setLoading(true);
+    try {
+      await onSubmit({ email, password });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} aria-label="Login form">
+      {error && <div role="alert">{error}</div>}
+      <label>
+        Email
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      </label>
+      <label>
+        Password
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      </label>
+      <button type="submit" disabled={loading}>
+        {loading ? 'Logging in...' : 'Login'}
+      </button>
+    </form>
+  );
+}
+```
+
+### Enzyme + Jest
+
+```jsx
+// LoginForm.enzyme.test.jsx
+import React from 'react';
+import { mount } from 'enzyme';
+import LoginForm from './LoginForm';
+
+describe('LoginForm', () => {
+  // ===== 渲染 =====
+  it('renders form elements', () => {
+    const wrapper = mount(<LoginForm onSubmit={jest.fn()} />);
+    expect(wrapper.find('input[type="email"]')).toHaveLength(1);
+    expect(wrapper.find('input[type="password"]')).toHaveLength(1);
+    expect(wrapper.find('button[type="submit"]')).toHaveLength(1);
+    expect(wrapper.find('button').text()).toBe('Login');
+  });
+
+  // ===== 填表 =====
+  it('updates input values', () => {
+    const wrapper = mount(<LoginForm onSubmit={jest.fn()} />);
+    wrapper.find('input[type="email"]').simulate('change', {
+      target: { value: 'nic@test.com' },
+    });
+    wrapper.find('input[type="password"]').simulate('change', {
+      target: { value: 'password123' },
+    });
+    // ⚠️ 測實現細節：直接檢查 input value
+    expect(wrapper.find('input[type="email"]').prop('value')).toBe('nic@test.com');
+    expect(wrapper.find('input[type="password"]').prop('value')).toBe('password123');
+  });
+
+  // ===== Validation =====
+  it('shows error when email is empty', () => {
+    const wrapper = mount(<LoginForm onSubmit={jest.fn()} />);
+    wrapper.find('form').simulate('submit');
+    wrapper.update();
+    expect(wrapper.text()).toContain('Email is required');
+  });
+
+  // ===== 提交 =====
+  it('calls onSubmit with form data', async () => {
+    const onSubmit = jest.fn().mockResolvedValue({});
+    const wrapper = mount(<LoginForm onSubmit={onSubmit} />);
+
+    wrapper.find('input[type="email"]').simulate('change', {
+      target: { value: 'nic@test.com' },
+    });
+    wrapper.find('input[type="password"]').simulate('change', {
+      target: { value: 'pass123' },
+    });
+    wrapper.find('form').simulate('submit');
+
+    // ⚠️ Enzyme 需要手動等 async
+    await new Promise((r) => setTimeout(r, 0));
+    wrapper.update();
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      email: 'nic@test.com',
+      password: 'pass123',
+    });
+  });
+
+  // ===== Loading state =====
+  it('shows loading state during submit', async () => {
+    let resolveSubmit;
+    const onSubmit = jest.fn(() => new Promise((r) => { resolveSubmit = r; }));
+    const wrapper = mount(<LoginForm onSubmit={onSubmit} />);
+
+    wrapper.find('input[type="email"]').simulate('change', { target: { value: 'a@b.com' } });
+    wrapper.find('input[type="password"]').simulate('change', { target: { value: '123' } });
+    wrapper.find('form').simulate('submit');
+    wrapper.update();
+
+    expect(wrapper.find('button').text()).toBe('Logging in...');
+    expect(wrapper.find('button').prop('disabled')).toBe(true);
+
+    resolveSubmit();
+    await new Promise((r) => setTimeout(r, 0));
+    wrapper.update();
+
+    expect(wrapper.find('button').text()).toBe('Login');
+  });
+
+  // ===== Error handling =====
+  it('shows server error', async () => {
+    const onSubmit = jest.fn().mockRejectedValue(new Error('Invalid credentials'));
+    const wrapper = mount(<LoginForm onSubmit={onSubmit} />);
+
+    wrapper.find('input[type="email"]').simulate('change', { target: { value: 'a@b.com' } });
+    wrapper.find('input[type="password"]').simulate('change', { target: { value: '123' } });
+    wrapper.find('form').simulate('submit');
+
+    await new Promise((r) => setTimeout(r, 0));
+    wrapper.update();
+
+    expect(wrapper.text()).toContain('Invalid credentials');
+  });
+});
+```
+
+### React Testing Library + Jest
+
+```jsx
+// LoginForm.rtl.test.jsx
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import LoginForm from './LoginForm';
+
+describe('LoginForm', () => {
+  // ===== 渲染 =====
+  it('renders form elements', () => {
+    render(<LoginForm onSubmit={jest.fn()} />);
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();
+  });
+
+  // ===== 填表 =====
+  it('accepts user input', async () => {
+    const user = userEvent.setup();
+    render(<LoginForm onSubmit={jest.fn()} />);
+
+    await user.type(screen.getByLabelText('Email'), 'nic@test.com');
+    await user.type(screen.getByLabelText('Password'), 'password123');
+
+    // ✅ 測用戶看到的結果，不測 input value
+    expect(screen.getByLabelText('Email')).toHaveValue('nic@test.com');
+    expect(screen.getByLabelText('Password')).toHaveValue('password123');
+  });
+
+  // ===== Validation =====
+  it('shows error when email is empty', async () => {
+    const user = userEvent.setup();
+    render(<LoginForm onSubmit={jest.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Login' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Email is required');
+  });
+
+  // ===== 提交 =====
+  it('calls onSubmit with form data', async () => {
+    const user = userEvent.setup();
+    const onSubmit = jest.fn().mockResolvedValue({});
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Email'), 'nic@test.com');
+    await user.type(screen.getByLabelText('Password'), 'pass123');
+    await user.click(screen.getByRole('button', { name: 'Login' }));
+
+    // ✅ 不需要手動 update 或 setTimeout
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        email: 'nic@test.com',
+        password: 'pass123',
+      });
+    });
+  });
+
+  // ===== Loading state =====
+  it('shows loading state during submit', async () => {
+    const user = userEvent.setup();
+    let resolveSubmit;
+    const onSubmit = jest.fn(() => new Promise((r) => { resolveSubmit = r; }));
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Email'), 'a@b.com');
+    await user.type(screen.getByLabelText('Password'), '123');
+    await user.click(screen.getByRole('button', { name: 'Login' }));
+
+    // ✅ 用 accessible name 查找
+    expect(screen.getByRole('button', { name: 'Logging in...' })).toBeDisabled();
+
+    resolveSubmit();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Login' })).toBeEnabled();
+    });
+  });
+
+  // ===== Error handling =====
+  it('shows server error', async () => {
+    const user = userEvent.setup();
+    const onSubmit = jest.fn().mockRejectedValue(new Error('Invalid credentials'));
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Email'), 'a@b.com');
+    await user.type(screen.getByLabelText('Password'), '123');
+    await user.click(screen.getByRole('button', { name: 'Login' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid credentials');
+  });
+});
+```
+
+### Vitest + RTL（同一個 test，換 runner）
+
+```jsx
+// LoginForm.vitest.test.jsx
+import { describe, it, expect, vi } from 'vitest';          // ← 唯一大差異
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import LoginForm from './LoginForm';
+
+describe('LoginForm', () => {
+  // ===== 渲染 =====
+  it('renders form elements', () => {
+    render(<LoginForm onSubmit={vi.fn()} />);                // jest.fn() → vi.fn()
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();
+  });
+
+  // ===== 填表 =====
+  it('accepts user input', async () => {
+    const user = userEvent.setup();
+    render(<LoginForm onSubmit={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Email'), 'nic@test.com');
+    await user.type(screen.getByLabelText('Password'), 'password123');
+
+    expect(screen.getByLabelText('Email')).toHaveValue('nic@test.com');
+    expect(screen.getByLabelText('Password')).toHaveValue('password123');
+  });
+
+  // ===== Validation =====
+  it('shows error when email is empty', async () => {
+    const user = userEvent.setup();
+    render(<LoginForm onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Login' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Email is required');
+  });
+
+  // ===== 提交 =====
+  it('calls onSubmit with form data', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue({});           // jest → vi
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Email'), 'nic@test.com');
+    await user.type(screen.getByLabelText('Password'), 'pass123');
+    await user.click(screen.getByRole('button', { name: 'Login' }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        email: 'nic@test.com',
+        password: 'pass123',
+      });
+    });
+  });
+
+  // ===== Loading state =====
+  it('shows loading state during submit', async () => {
+    const user = userEvent.setup();
+    let resolveSubmit;
+    const onSubmit = vi.fn(() => new Promise((r) => { resolveSubmit = r; }));
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Email'), 'a@b.com');
+    await user.type(screen.getByLabelText('Password'), '123');
+    await user.click(screen.getByRole('button', { name: 'Login' }));
+
+    expect(screen.getByRole('button', { name: 'Logging in...' })).toBeDisabled();
+
+    resolveSubmit();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Login' })).toBeEnabled();
+    });
+  });
+
+  // ===== Error handling =====
+  it('shows server error', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockRejectedValue(new Error('Invalid credentials'));
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Email'), 'a@b.com');
+    await user.type(screen.getByLabelText('Password'), '123');
+    await user.click(screen.getByRole('button', { name: 'Login' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid credentials');
+  });
+});
+```
+
+### 三者對比總表
+
+| 維度 | Enzyme + Jest | RTL + Jest | RTL + Vitest |
+|------|---------------|------------|--------------|
+| **查找元素** | `find('input[type="email"]')` | `getByLabelText('Email')` | 同 RTL |
+| **觸發事件** | `.simulate('change', {target})` | `await user.type()` | 同 RTL |
+| **等待 async** | `setTimeout` + `wrapper.update()` | `waitFor()` / `findBy` | 同 RTL |
+| **Mock** | `jest.fn()` | `jest.fn()` | `vi.fn()` |
+| **Mock module** | `jest.mock('./api')` | `jest.mock('./api')` | `vi.mock('./api')` |
+| **Assert** | `.prop('value')`, `.text()` | `.toHaveValue()`, `getByRole` | 同 RTL |
+| **測試理念** | 測實現細節 | 測用戶行為 | 測用戶行為 |
+| **Config** | jest.config.js + babel | jest.config.js + babel | **零 config (共享 vite.config)** |
+| **速度** | 慢 | 中 | **快 2-5x** |
+| **RTL → Vitest 改動量** | — | — | **只改 import + jest→vi** |
+
+### Config 對比
+
+```js
+// ===== jest.config.js (Enzyme 或 RTL) =====
+module.exports = {
+  testEnvironment: 'jsdom',
+  transform: {
+    '^.+\\.jsx?$': 'babel-jest',
+  },
+  moduleNameMapper: {
+    '\\.(css|less)$': 'identity-obj-proxy',
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+  setupFilesAfterSetup: ['./jest.setup.js'],
+  coverageThreshold: {
+    global: { branches: 85, functions: 85, lines: 85, statements: 85 },
+  },
+};
+```
+
+```js
+// ===== vitest.config.js =====
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    globals: true,                 // 不需要 import describe/it
+    setupFiles: './vitest.setup.js',
+    coverage: {
+      thresholds: { branches: 85, functions: 85, lines: 85, statements: 85 },
+    },
+    alias: {
+      '@': '/src',
+    },
+    // CSS 自動 mock，不需要 identity-obj-proxy
+    css: { modules: { classNameStrategy: 'non-scoped' } },
+  },
+});
+// 就這麼多！不需要 babel, transform, moduleNameMapper
+```

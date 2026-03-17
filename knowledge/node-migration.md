@@ -93,3 +93,184 @@ const data = await res.json();
   }
 }
 ```
+
+---
+
+## 完整對比：同一個 Module，CJS vs ESM
+
+> 場景：一個 API service module，有 file path 操作、async fetch、export/import。
+
+### CommonJS (CJS) — Node 22 傳統寫法
+
+```js
+// services/api.cjs
+const path = require('path');
+const fs = require('fs');
+
+const BASE_URL = process.env.API_URL || 'http://localhost:8080';
+const CONFIG_PATH = path.join(__dirname, '../config/api.json');
+
+// 同步讀 config
+function loadConfig() {
+  const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
+  return JSON.parse(raw);
+}
+
+// Async fetch
+async function fetchUser(id) {
+  const config = loadConfig();
+  const res = await fetch(`${BASE_URL}/users/${id}`, {
+    headers: { 'Authorization': `Bearer ${config.token}` },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function updateUser(id, data) {
+  const config = loadConfig();
+  const res = await fetch(`${BASE_URL}/users/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+// CJS export
+module.exports = { fetchUser, updateUser, loadConfig };
+
+// CJS 用法
+const { fetchUser } = require('./services/api.cjs');
+```
+
+### ESM — Node 25 現代寫法
+
+```js
+// services/api.mjs (或 .js + "type": "module")
+import { readFileSync } from 'node:fs';           // ✅ node: 前綴（推薦）
+import { join } from 'node:path';
+
+// ✅ __dirname 替代
+const __dirname = import.meta.dirname;              // Node 21+
+const CONFIG_PATH = join(__dirname, '../config/api.json');
+
+const BASE_URL = process.env.API_URL || 'http://localhost:8080';
+
+function loadConfig() {
+  const raw = readFileSync(CONFIG_PATH, 'utf-8');
+  return JSON.parse(raw);
+}
+
+// ✅ Top-level await (ESM only)
+// const config = await loadConfig();  // 可以在頂層 await
+
+async function fetchUser(id) {
+  const config = loadConfig();
+  const res = await fetch(`${BASE_URL}/users/${id}`, {
+    headers: { 'Authorization': `Bearer ${config.token}` },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function updateUser(id, data) {
+  const config = loadConfig();
+  const res = await fetch(`${BASE_URL}/users/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+// ✅ ESM named export
+export { fetchUser, updateUser, loadConfig };
+
+// ESM 用法
+import { fetchUser } from './services/api.mjs';
+```
+
+### 並排對比表
+
+| 功能 | CJS (Node 22) | ESM (Node 25) |
+|------|---------------|---------------|
+| **Import** | `const x = require('x')` | `import x from 'x'` |
+| **Named import** | `const { a } = require('x')` | `import { a } from 'x'` |
+| **Export** | `module.exports = { a }` | `export { a }` |
+| **Default export** | `module.exports = fn` | `export default fn` |
+| **Dynamic import** | `require(variable)` | `await import(variable)` |
+| **__dirname** | `__dirname`（全局） | `import.meta.dirname` |
+| **__filename** | `__filename`（全局） | `import.meta.filename` |
+| **JSON import** | `require('./data.json')` | `import data from './data.json' assert { type: 'json' }` |
+| **Top-level await** | ❌ 不支持 | ✅ 支持 |
+| **條件 import** | `if (x) require('y')` | `if (x) await import('y')` |
+| **File extension** | 可省略 `.js` | **必須寫完整** |
+| **node: prefix** | 可選 | 推薦（明確是 built-in） |
+
+### CJS ↔ ESM 互操作
+
+```js
+// ESM 中用 CJS module
+import cjsModule from './legacy.cjs';          // default import
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const pkg = require('./package.json');          // ESM 中 require JSON
+
+// CJS 中用 ESM module（Node 22+）
+const esmModule = await import('./modern.mjs'); // 必須 dynamic import + await
+```
+
+### 測試對比：node:test vs Jest
+
+```js
+// ===== Jest (CJS 風格) =====
+const { fetchUser } = require('./services/api');
+
+describe('API Service', () => {
+  beforeEach(() => {
+    global.fetch = jest.fn();
+  });
+
+  it('fetches user by id', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ id: '1', name: 'Nic' }),
+    });
+    const user = await fetchUser('1');
+    expect(user.name).toBe('Nic');
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/users/1'),
+      expect.any(Object)
+    );
+  });
+});
+
+// ===== node:test (ESM 風格) =====
+import { describe, it, beforeEach, mock } from 'node:test';
+import assert from 'node:assert';
+import { fetchUser } from './services/api.mjs';
+
+describe('API Service', () => {
+  beforeEach(() => {
+    global.fetch = mock.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ id: '1', name: 'Nic' }),
+      })
+    );
+  });
+
+  it('fetches user by id', async () => {
+    const user = await fetchUser('1');
+    assert.strictEqual(user.name, 'Nic');
+    assert.strictEqual(global.fetch.mock.calls.length, 1);
+  });
+});
+// 運行: node --test
+```
