@@ -180,6 +180,118 @@ export function printReactAudit(findings) {
   process.stdout.write(buf.join('\n'));
 }
 
+export function printLockCheck(lockResult, peerConflicts) {
+  const buf = [];
+  buf.push('');
+  buf.push(chalk.bold(`  🔒 Lock File Check`) + chalk.gray(` (${lockResult.pm} / ${lockResult.lockFile})`));
+  buf.push('');
+
+  if (lockResult.ok && peerConflicts.length === 0) {
+    buf.push(chalk.green('  ✅ Lock file is in sync with package.json'));
+    buf.push(chalk.green('  ✅ No peerDependency conflicts'));
+    buf.push('');
+    process.stdout.write(buf.join('\n'));
+    return;
+  }
+
+  // Lock issues
+  if (lockResult.issues.length > 0) {
+    for (const issue of lockResult.issues) {
+      const icon = issue.severity === 'CRITICAL' ? '❌' : issue.severity === 'HIGH' ? '⚠️' : 'ℹ️';
+      const color = issue.severity === 'CRITICAL' ? chalk.red : issue.severity === 'HIGH' ? chalk.yellow : chalk.gray;
+      buf.push(`  ${icon} ${color(issue.msg)}`);
+      if (issue.fix) buf.push(chalk.gray(`     💡 ${issue.fix}`));
+    }
+    buf.push('');
+  }
+
+  // peerDep conflicts
+  if (peerConflicts.length > 0) {
+    buf.push(chalk.bold('  ⛓️  peerDependency Conflicts'));
+    buf.push('');
+
+    const table = new Table({
+      head: [
+        chalk.gray('package'),
+        chalk.gray('requires'),
+        chalk.gray('installed'),
+        chalk.gray('severity'),
+      ],
+      colWidths: [22, 22, 22, 14],
+      style: { head: [], border: ['gray'] },
+      chars: {
+        'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
+        'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
+        'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
+        'right': '│', 'right-mid': '┤', 'middle': '│',
+      },
+    });
+
+    for (const c of peerConflicts) {
+      const sevBadge = c.severity === 'CRITICAL' ? BADGE.CRITICAL : BADGE.OUTDATED;
+      table.push([
+        chalk.cyan.bold(c.package),
+        chalk.yellow(c.requires),
+        chalk.red(c.installed),
+        sevBadge,
+      ]);
+    }
+    buf.push(table.toString());
+    buf.push('');
+  }
+
+  // Summary
+  const lockIssues = lockResult.issues.filter((i) => i.severity !== 'LOW').length;
+  const parts = [];
+  if (lockIssues > 0) parts.push(chalk.red(`❌ ${lockIssues} lock issues`));
+  if (peerConflicts.length > 0) parts.push(chalk.yellow(`⛓️  ${peerConflicts.length} peer conflicts`));
+  if (parts.length === 0) parts.push(chalk.green('✅ all clear'));
+  buf.push(`  ${parts.join('  ')}`);
+  buf.push('');
+
+  process.stdout.write(buf.join('\n'));
+}
+
+export function printFixReport(result) {
+  const buf = [];
+  buf.push('');
+  buf.push(chalk.bold('  🔧 dep-doctor fix') + (result.dryRun ? chalk.yellow(' (dry run)') : ''));
+  buf.push('');
+
+  // Steps
+  for (const step of result.steps) {
+    buf.push(`  ${step.icon} ${chalk.bold(step.name)} ${chalk.gray('—')} ${chalk.white(step.detail)}`);
+  }
+  buf.push('');
+
+  // Changes
+  if (result.changes.length > 0) {
+    buf.push(chalk.bold('  📋 Changes'));
+    buf.push('');
+    for (const ch of result.changes) {
+      const icon = ch.auto ? '🔧' : '📌';
+      const badge = ch.type === 'DEPRECATED' ? BADGE.DEPRECATED :
+                    ch.type === 'RANGE_FIX' ? chalk.bgCyan.black.bold(' RANGE ') :
+                    chalk.bgGray.white.bold(` ${ch.type} `);
+      buf.push(`  ${icon} ${badge} ${chalk.cyan.bold(ch.pkg)}`);
+      buf.push(chalk.gray(`     ${ch.action}`));
+    }
+    buf.push('');
+  }
+
+  // Before/After
+  buf.push(chalk.bold('  📊 Summary'));
+  buf.push(`  ${chalk.gray('Before:')} ${result.before} dependencies`);
+  buf.push(`  ${chalk.gray('After: ')} ${result.after} dependencies`);
+  buf.push(`  ${chalk.gray('PM:    ')} ${result.pm}`);
+  if (result.backupSuffix) {
+    buf.push(`  ${chalk.gray('Backup:')} package.json${result.backupSuffix}`);
+  }
+  buf.push('');
+
+  process.stdout.write(buf.join('\n'));
+}
+
 export function printWhyResult(chain) {
   const buf = [];
   buf.push('');

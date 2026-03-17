@@ -6,7 +6,10 @@ import { resolve } from 'node:path';
 import { scan } from './scanner.js';
 import { auditReactAPIs } from './react-audit.js';
 import { whyPackage } from './why.js';
-import { printScanResults, printReactAudit, printWhyResult } from './reporter.js';
+import { printScanResults, printReactAudit, printWhyResult, printLockCheck, printFixReport } from './reporter.js';
+import { checkLockIntegrity, checkPeerDeps } from './lock-checker.js';
+import { fixDependencies } from './fixer.js';
+import { detectPackageManager } from './pm-detect.js';
 
 export function cli() {
   const program = new Command();
@@ -96,25 +99,91 @@ export function cli() {
       printWhyResult(chain);
     });
 
+  // ── check ──────────────────────────────────────────────
+  program
+    .command('check')
+    .description('Check lock file integrity + peerDep conflicts')
+    .option('-p, --path <path>', 'Project path', '.')
+    .action((options) => {
+      const projectPath = resolve(options.path);
+      const pm = detectPackageManager(projectPath);
+
+      console.log('');
+      const spinner = ora({
+        text: chalk.dim(`Checking ${pm} lock file...`),
+        spinner: 'dots2',
+      }).start();
+
+      try {
+        const lockResult = checkLockIntegrity(projectPath);
+        const peerConflicts = checkPeerDeps(projectPath);
+        spinner.stop();
+        printLockCheck(lockResult, peerConflicts);
+
+        const hasIssues = !lockResult.ok || peerConflicts.length > 0;
+        process.exit(hasIssues ? 1 : 0);
+      } catch (err) {
+        spinner.fail(chalk.red(err.message));
+        process.exit(2);
+      }
+    });
+
+  // ── fix ──────────────────────────────────────────────
+  program
+    .command('fix')
+    .description('Auto-fix dependency issues (backup + lock regen)')
+    .option('-p, --path <path>', 'Project path', '.')
+    .option('--dry-run', 'Show what would change without modifying files')
+    .option('--auto-stash', 'Auto git-stash uncommitted changes before fix')
+    .action(async (options) => {
+      const projectPath = resolve(options.path);
+
+      console.log('');
+      const spinner = ora({
+        text: chalk.dim('Diagnosing dependencies...'),
+        spinner: 'dots2',
+      }).start();
+
+      try {
+        spinner.stop();
+        const result = await fixDependencies(projectPath, {
+          dryRun: options.dryRun,
+          autoStash: options.autoStash,
+        });
+        printFixReport(result);
+        process.exit(0);
+      } catch (err) {
+        spinner.fail(chalk.red(err.message));
+        process.exit(2);
+      }
+    });
+
   // No args → help
   if (process.argv.length <= 2) {
     console.log('');
-    console.log(chalk.bold('  dep-doctor') + chalk.dim(' v1.0.0 — dependency health scanner'));
+    console.log(chalk.bold('  🩺 dep-doctor') + chalk.dim(' v2.0.0 — dependency health scanner & fixer'));
     console.log('');
-    console.log(chalk.dim('  Commands:'));
-    console.log(`    ${chalk.cyan('scan')}          Scan dependencies for issues`);
-    console.log(`    ${chalk.cyan('react-audit')}   Scan source for React 16 deprecated APIs`);
-    console.log(`    ${chalk.cyan('why')} ${chalk.gray('<pkg>')}     Show dependency chain for a package`);
+    console.log(chalk.dim('  Diagnose:'));
+    console.log(`    ${chalk.cyan('scan')}            📦 Scan dependencies for issues`);
+    console.log(`    ${chalk.cyan('check')}           🔒 Check lock file + peerDep conflicts`);
+    console.log(`    ${chalk.cyan('react-audit')}     ⚛️  Scan source for React 16 deprecated APIs`);
+    console.log(`    ${chalk.cyan('why')} ${chalk.gray('<pkg>')}       🔍 Show dependency chain`);
+    console.log('');
+    console.log(chalk.dim('  Fix:'));
+    console.log(`    ${chalk.cyan('fix')}             🔧 Auto-fix issues (backup + lock regen)`);
+    console.log(`    ${chalk.cyan('fix --dry-run')}   📋 Preview changes without modifying files`);
     console.log('');
     console.log(chalk.dim('  Options:'));
-    console.log(`    ${chalk.gray('-p, --path')}    Project path (default: current directory)`);
-    console.log(`    ${chalk.gray('--json')}        Output JSON report only (scan command)`);
+    console.log(`    ${chalk.gray('-p, --path')}      Project path (default: current directory)`);
+    console.log(`    ${chalk.gray('--json')}          JSON output (scan command)`);
+    console.log(`    ${chalk.gray('--auto-stash')}    Git stash before fix`);
     console.log('');
     console.log(chalk.dim('  Examples:'));
     console.log(`    ${chalk.gray('$')} dep-doctor scan`);
-    console.log(`    ${chalk.gray('$')} dep-doctor scan --json`);
+    console.log(`    ${chalk.gray('$')} dep-doctor check`);
+    console.log(`    ${chalk.gray('$')} dep-doctor fix --dry-run`);
     console.log(`    ${chalk.gray('$')} dep-doctor react-audit`);
-    console.log(`    ${chalk.gray('$')} dep-doctor why lodash`);
+    console.log(`    ${chalk.gray('$')} dep-doctor why yup`);
     console.log('');
     return;
   }
