@@ -1,6 +1,6 @@
 # Daily Work Patterns — 日常工作速查
 
-> 唔係教程，係你每日會用到嘅 pattern 集合。
+> 不是教程，是日常会用到的 pattern 集合。
 
 ## Git 日常
 

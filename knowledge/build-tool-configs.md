@@ -443,7 +443,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 ```js
 // 零配置！直接寫 .ts/.tsx 就得
 // 只需 tsconfig.json 存在
-// vite.config.js 唔使改任何嘢
+// vite.config.js 不需要改任何内容
 ```
 
 ---
@@ -512,10 +512,10 @@ resolve: {
 
 ---
 
-## 我嘅建議（你嘅情況）
+## 建议（当前情况）
 
 ```
-你而家：Webpack 4 + React 16 + Enzyme + Node 22
+当前：Webpack 4 + React 16 + Enzyme + Node 22
          │
          ▼ (Phase 1: 穩定)
 Step 1:  Webpack 4 → 5          ← 解決 breaking changes
@@ -523,7 +523,7 @@ Step 2:  React 16 → 18          ← 解決依賴地獄
 Step 3:  Enzyme → RTL           ← 測試現代化
          │
          ▼ (Phase 2: 提速)
-Step 4:  Webpack 5 → Rspack     ← 半天搞掂，build 快 5-10x
+Step 4:  Webpack 5 → Rspack     ← 半天完成，build 快 5-10x
 Step 5:  Node 22 → 25           ← ESM 更穩定
          │
          ▼ (Phase 3: 長期，新項目先)
@@ -531,4 +531,4 @@ Step 6:  Rspack → Vite          ← 新項目用；舊項目 Rspack 夠用
 Step 7:  Jest → Vitest          ← 跟 Vite 一起換
 ```
 
-**Phase 1 做完就已經解決 80% 痛點。Phase 2 係 bonus。Phase 3 唔急。**
+**Phase 1 做完就已经解决 80% 痛点。Phase 2 是 bonus。Phase 3 不急。**

@@ -39,13 +39,13 @@ Analyze for performance issues and suggest concrete improvements.
 ## Output Format
 
 ```markdown
-## Quick Wins (5 分鐘搞掂)
+## Quick Wins (< 5 minutes)
 1. [fix] — expected impact
 
-## Medium Effort (1-2 小時)
+## Medium Effort (1-2 hours)
 1. [fix] — expected impact
 
-## Needs Refactoring (1+ 天)
+## Needs Refactoring (1+ days)
 1. [fix] — expected impact
 ```
 

@@ -1,53 +1,57 @@
 # Copilot Toolkit
 
-Portable VS Code + GitHub Copilot toolkit for React migration and daily development workflow.
+Portable GitHub Copilot configuration for React migration and daily development workflow in VS Code.
 
-## What's Inside
+## Contents
 
 ### Copilot Instructions
-- `copilot-instructions.md` → Copy to `.github/copilot-instructions.md`
-- Auto-attached to all Copilot Chat requests
+- `copilot-instructions.md` → `.github/copilot-instructions.md`
+- Automatically attached to all Copilot Chat requests
 - Compatible with GPT-5.x and GPT-4.1 fallback
 
 ### Prompt Files (15)
-Copy `prompts/` to `.github/prompts/`. Use `/name` in Copilot Chat.
+Copy `prompts/` to `.github/prompts/`. Invoke with `/name` in Copilot Chat.
 
 | Command | Purpose |
 |---------|---------|
 | `/quick-fix` | Paste error → get instant fix |
-| `/debug` | Deep error diagnosis |
-| `/explain` | Read & explain source code |
-| `/scan-file` | Full file analysis (like senior dev review) |
-| `/trace-flow` | Trace data/execution path |
-| `/optimize` | Performance audit |
-| `/refactor` | Modernize & simplify code |
+| `/debug` | Deep error diagnosis with root cause analysis |
+| `/explain` | Read and explain source code |
+| `/scan-file` | Full file analysis (architecture, quality, migration readiness) |
+| `/trace-flow` | Trace data/execution path through codebase |
+| `/optimize` | Performance audit with prioritized fixes |
+| `/refactor` | Modernize and simplify code |
 | `/diagnose-compat` | React/Node/Webpack version compatibility check |
-| `/audit-deps` | Dependency blocker scan |
-| `/migrate-react` | React 16→18/19 migration guide |
-| `/fix-build` | Build error resolution |
-| `/tdd` | Test-driven development |
-| `/code-review` | Pre-PR quality check |
-| `/pr-description` | Generate PR description |
-| `/daily-standup` | Standup notes from git |
+| `/audit-deps` | Dependency blocker scan for upgrades |
+| `/migrate-react` | React 16→18/19 file-by-file migration guide |
+| `/fix-build` | Build error diagnosis and resolution |
+| `/tdd` | Test-driven development with RTL |
+| `/code-review` | Pre-PR quality checklist |
+| `/pr-description` | Generate PR description from git diff |
+| `/daily-standup` | Generate standup notes from git log |
 
-### Knowledge Base (6 cheatsheets)
+### Knowledge Base (8 cheatsheets)
 | File | Content |
 |------|---------|
-| `react-migration.md` | React 16→18→19 every deprecated API with before/after code |
-| `webpack-migration.md` | Webpack 4→5 breaking changes + fixes |
-| `node-migration.md` | Node 22→25 ESM/CJS changes |
-| `ts-quickref.md` | TypeScript for experienced JS developers |
-| `dependency-patterns.md` | Dependency hell diagnosis & solutions |
-| `daily-patterns.md` | Daily React/Git/Debug patterns |
+| `react-migration.md` | React 16→18→19 API migration with side-by-side component comparison |
+| `webpack-migration.md` | Webpack 4→5 breaking changes and fixes |
+| `build-tool-configs.md` | Webpack 5 vs Rspack vs Vite — same project, three configs |
+| `node-migration.md` | Node 22→25 CJS/ESM migration with side-by-side module comparison |
+| `ts-quickref.md` | TypeScript for JS developers with JS vs TS component comparison |
+| `testing-migration.md` | Enzyme→RTL→Vitest with same test written three ways |
+| `dependency-patterns.md` | Dependency conflict diagnosis and resolution patterns |
+| `daily-patterns.md` | Common React/Git/Debug patterns for daily development |
 
 ### VS Code Config
-- `vscode/settings-recommended.jsonc` — Copilot + editor settings
-- `vscode/snippets-react.json` — React/TS/RTL snippets
+- `vscode/settings-recommended.jsonc` — Copilot and editor settings
+- `vscode/snippets-react.json` — React/TypeScript/RTL code snippets
 
 ### Tools
 - `tools/audit-react16-api.sh` — Scan codebase for React 16 deprecated APIs, output markdown report
 
-## Quick Setup
+## Quick Start
+
+See [SETUP.md](./SETUP.md) for detailed installation instructions.
 
 ```bash
 # In your project root
@@ -55,8 +59,6 @@ mkdir -p .github/prompts
 cp copilot-instructions.md .github/copilot-instructions.md
 cp prompts/*.prompt.md .github/prompts/
 ```
-
-See `SETUP.md` for full setup guide.
 
 ## License
 MIT

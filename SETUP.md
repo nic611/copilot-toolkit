@@ -1,231 +1,165 @@
-# 搬遷指南 — 點樣搬到工作機 VS Code
+# Setup Guide
 
----
+## Prerequisites
 
-## 第一次設置（15 分鐘搞掂）
+- VS Code with GitHub Copilot extension
+- GitHub Copilot subscription (Pro, Business, or Enterprise)
 
-### Step 1: 打開 GitHub 複製文件
+## Installation
 
-1. 工作機瀏覽器打開 **https://github.com/nic611/copilot-toolkit**
-2. 你會見到所有文件列表
-
-### Step 2: 建目錄
-
-喺你工作項目嘅**根目錄**（即 `package.json` 所在嘅位置），開 terminal：
+### Step 1: Clone this repository
 
 ```bash
+git clone https://github.com/nic611/copilot-toolkit.git ~/copilot-toolkit
+```
+
+### Step 2: Copy files to your project
+
+```bash
+cd /path/to/your-project
+
+# Create directories
 mkdir -p .github/prompts
 mkdir -p knowledge
-mkdir -p .vscode
+
+# Copy Copilot instructions (auto-attached to all chat requests)
+cp ~/copilot-toolkit/copilot-instructions.md .github/copilot-instructions.md
+
+# Copy prompt files (invoked with /name in chat)
+cp ~/copilot-toolkit/prompts/*.prompt.md .github/prompts/
+
+# Copy knowledge base (reference cheatsheets)
+cp ~/copilot-toolkit/knowledge/*.md knowledge/
 ```
 
-你嘅工作 repo 應該變成：
-```
-your-work-project/
-├── .github/
-│   ├── prompts/              ← 等陣放 prompt files
-│   └── copilot-instructions.md  ← 等陣放 instructions
-├── knowledge/                ← 等陣放速查手冊
-├── .vscode/
-│   └── settings.json         ← 等陣改設定
-├── src/
-├── package.json
-└── ...
-```
+### Step 3: Update project context
 
-### Step 3: 複製 copilot-instructions.md
+Edit `.github/copilot-instructions.md` — replace placeholder package names in the `Project Context` section with your actual package names:
 
-1. GitHub 上點開 `copilot-instructions.md`
-2. 點右上角 **Raw** 按鈕
-3. 全選 (`Ctrl+A`) → 複製 (`Ctrl+C`)
-4. VS Code 新建文件：`.github/copilot-instructions.md`
-5. 貼上 (`Ctrl+V`) → 保存
-
-**⚠️ 重要：** 文件入面嘅 `Project Context` 段落，**本地改成你真實嘅 package 名**：
 ```markdown
 ## Project Context
-- 3 unmaintained core packages (@xx/core, @xx/form) blocking upgrades
-                                 ↑ 改成真名，只存本地，唔好 commit
+- 3 unmaintained core packages (@your/core, @your/form)
 ```
 
-### Step 4: 複製 Prompt Files
+> **Note:** Do not commit real package names to public repositories. Add `.github/copilot-instructions.md` to `.gitignore` if needed, or keep the placeholders in the committed version and override locally.
 
-逐個文件重複以下步驟（或一次過）：
+### Step 4: Configure VS Code
 
-**方法 A: 逐個複製（穩陣）**
-1. GitHub 上入 `prompts/` 文件夾
-2. 點開 `quick-fix.prompt.md` → 點 **Raw** → 全選複製
-3. VS Code 新建：`.github/prompts/quick-fix.prompt.md` → 貼上保存
-4. 重複以上步驟，逐個 prompt file 複製
-
-**方法 B: Clone 整個 repo 再 copy（快）**
-```bash
-# 喺 home 目錄或者任意地方
-git clone https://github.com/nic611/copilot-toolkit.git ~/copilot-toolkit
-
-# 複製到工作 repo
-cp ~/copilot-toolkit/copilot-instructions.md /path/to/work-repo/.github/
-cp ~/copilot-toolkit/prompts/*.prompt.md /path/to/work-repo/.github/prompts/
-
-# 日後更新也係：
-cd ~/copilot-toolkit && git pull
-# 再 cp 過去
-```
-
-**方法 C: 如果工作機有 git + GitHub access**
-```bash
-cd /path/to/work-repo
-# 直接下載個別文件
-curl -O https://raw.githubusercontent.com/nic611/copilot-toolkit/main/copilot-instructions.md
-mv copilot-instructions.md .github/
-
-# 或者用 git archive 下載整個 prompts 文件夾
-# 但通常方法 B 最方便
-```
-
-### Step 5: 複製 Knowledge 文件
-
-```bash
-# 如果用方法 B clone 咗
-cp ~/copilot-toolkit/knowledge/*.md /path/to/work-repo/knowledge/
-```
-
-或者逐個從 GitHub 複製，同 Step 4 方法 A 一樣。
-
-**Knowledge 文件唔入 git（加到 .gitignore）：**
-```bash
-# 加到工作 repo 的 .gitignore
-echo "knowledge/" >> .gitignore
-```
-
-### Step 6: VS Code 設定
-
-打開你工作 repo 嘅 `.vscode/settings.json`（冇就新建），加入：
+Add the following to `.vscode/settings.json`:
 
 ```jsonc
 {
-  // 啟用 Copilot 讀取 .github/copilot-instructions.md
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
-
-  // 啟用 prompt files（/name 調用）
   "chat.promptFiles": true,
-
-  // 啟用 agent mode
   "github.copilot.chat.agent.enabled": true
 }
 ```
 
-**如果 `.vscode/settings.json` 已經有內容：** 手動加呢三行入去已有嘅 `{}` 裡面，唔好覆蓋。
+### Step 5: Install snippets (optional)
 
-### Step 7: VS Code Snippets（可選但推薦）
+1. Open Command Palette: `Cmd+Shift+P` (Mac) / `Ctrl+Shift+P` (Windows)
+2. Select **Snippets: Configure Snippets**
+3. Choose `javascriptreact` or `typescriptreact`
+4. Paste the contents of `vscode/snippets-react.json`
 
-1. VS Code 按 `Cmd+Shift+P`（Mac）或 `Ctrl+Shift+P`（Windows）
-2. 輸入 `Snippets: Configure Snippets`，撳 Enter
-3. 選 `javascriptreact`（或 `typescriptreact`）
-4. 會打開一個 JSON 文件
-5. 從 GitHub 複製 `vscode/snippets-react.json` 嘅內容
-6. 貼入去（merge 到已有 snippets 入面）
-7. 保存
+Available snippets:
 
-**之後你可以用嘅快捷：**
-| 打字 | 生成 |
-|------|------|
-| `rfc` + Tab | React Function Component |
-| `rfct` + Tab | React FC with TypeScript |
-| `ust` + Tab | useState |
-| `uef` + Tab | useEffect |
-| `urf` + Tab | useRef |
-| `usl` + Tab | useSelector |
-| `udp` + Tab | useDispatch |
-| `rtlt` + Tab | RTL test boilerplate |
-| `cdb` + Tab | Debug console.log with 🔴 marker |
+| Prefix | Output |
+|--------|--------|
+| `rfc` | React Function Component |
+| `rfct` | React FC with TypeScript interface |
+| `ust` | `useState` hook |
+| `uef` | `useEffect` hook with cleanup |
+| `urf` | `useRef` hook |
+| `usl` | Redux `useSelector` |
+| `udp` | Redux `useDispatch` |
+| `rtlt` | React Testing Library test boilerplate |
+| `cdb` | Debug `console.log` with emoji marker |
 
-### Step 8: 驗證
+### Step 6: Verify
 
-1. 打開 VS Code 嘅 Copilot Chat（側欄或者 `Ctrl+Shift+I`）
-2. 輸入 `/` — 你應該見到你嘅 prompt files 列表：
-   ```
-   /quick-fix
-   /debug
-   /explain
-   /scan-file
-   ...
-   ```
-3. 試下輸入 `/quick-fix` 然後貼一個 error message
-4. 如果 Copilot 有回應就代表設定成功
+1. Open Copilot Chat in VS Code (`Ctrl+Shift+I`)
+2. Type `/` — you should see your prompt files listed
+3. Try `/quick-fix` and paste an error message
+4. Copilot should respond using the prompt template
 
-**如果見唔到 prompt files：**
-- 確認 `.github/prompts/` 文件夾存在
-- 確認 `settings.json` 有 `"chat.promptFiles": true`
-- 重啟 VS Code
+**Troubleshooting:**
+- Prompt files not appearing → verify `.github/prompts/` directory exists
+- Instructions not applied → check `settings.json` includes `useInstructionFiles: true`
+- Restart VS Code after initial setup
 
 ---
 
-## 日後更新（2 分鐘）
+## Updating
 
-每晚你喺屋企用 CC 學到新嘢，我會幫你更新 `copilot-toolkit` repo。
+When the toolkit is updated:
 
-第二日返工：
-
-**如果用咗方法 B（clone 咗 repo）：**
 ```bash
 cd ~/copilot-toolkit
 git pull
-cp knowledge/*.md /path/to/work-repo/knowledge/
-# prompts 和 instructions 通常唔使成日更新
+
+# Copy updated files
+cp knowledge/*.md /path/to/your-project/knowledge/
+# Only re-copy prompts/instructions if changed
 ```
 
-**如果用方法 A（手動複製）：**
-- 打開 GitHub → 睇邊個文件有更新（睇 commit 時間）→ 複製更新嘅文件
+---
+
+## File Mapping
+
+| Source | Destination | Purpose |
+|--------|-------------|---------|
+| `copilot-instructions.md` | `.github/copilot-instructions.md` | Auto-attached context for all Copilot Chat requests |
+| `prompts/*.prompt.md` | `.github/prompts/` | Reusable prompts invoked with `/name` |
+| `knowledge/*.md` | `knowledge/` | Reference cheatsheets (add to `.gitignore`) |
+| `vscode/settings-recommended.jsonc` | `.vscode/settings.json` | Copilot feature flags |
+| `vscode/snippets-react.json` | VS Code user snippets | Code input shortcuts |
+| `tools/audit-react16-api.sh` | Any location | React 16 deprecated API scanner |
 
 ---
 
-## 完整文件列表 + 放邊度
+## Prompt Reference
 
-| 來源文件 | 放去工作 repo 嘅位置 | 作用 |
-|----------|---------------------|------|
-| `copilot-instructions.md` | `.github/copilot-instructions.md` | Copilot 自動讀取，每次 chat 都附加 |
-| `prompts/*.prompt.md` (15 個) | `.github/prompts/` | 用 `/name` 調用 |
-| `knowledge/*.md` (8 個) | `knowledge/` (加入 .gitignore) | 自己查 + Copilot 可以引用 |
-| `vscode/settings-recommended.jsonc` | `.vscode/settings.json` (merge) | 啟用 Copilot 功能 |
-| `vscode/snippets-react.json` | VS Code user snippets | 代碼快捷輸入 |
-| `tools/audit-react16-api.sh` | 任意位置 | 跑 deprecated API 掃描 |
+### Daily Development
+
+| Scenario | Command | When to use |
+|----------|---------|-------------|
+| Console error | `/quick-fix` | Fast fix, covers 90% of cases |
+| Complex bug | `/debug` | Root cause analysis with execution trace |
+| Unfamiliar code | `/explain` | Select code → get breakdown + improvement suggestions |
+| File review | `/scan-file` | Full analysis: architecture, quality, migration readiness |
+| Data flow | `/trace-flow` | Trace execution path across files |
+
+### Code Quality
+
+| Scenario | Command | When to use |
+|----------|---------|-------------|
+| Performance issue | `/optimize` | Categorized as Quick Win / Medium / Heavy |
+| Messy code | `/refactor` | Extract, simplify, modernize |
+| Pre-PR check | `/code-review` | Quality checklist before submitting |
+| Write PR | `/pr-description` | Generate from git diff |
+| New feature | `/tdd` | Write tests first, then implement |
+
+### Migration
+
+| Scenario | Command | When to use |
+|----------|---------|-------------|
+| Version check | `/diagnose-compat` | React/Node/Webpack compatibility matrix |
+| Dependency audit | `/audit-deps` | Identify upgrade blockers |
+| React migration | `/migrate-react` | File-by-file migration guide |
+| Build failure | `/fix-build` | Diagnose and fix migration-related build errors |
+| Standup | `/daily-standup` | Generate notes from git log |
 
 ---
 
-## Prompt Files 速查
+## Model Selection Strategy
 
-| 場景 | 輸入 | 效果 |
-|------|------|------|
-| Console 報錯 | `/quick-fix` + 貼 error | 即出 fix + 驗證命令 |
-| 複雜 bug | `/debug` + 貼 error/描述 | 逐步診斷 + 根因分析 |
-| 睇唔明段 code | 選中代碼 → `/explain` | 一句話總結 + 改進建議 |
-| 全面體檢文件 | `/scan-file` + 文件路徑 | 架構 + 質量 + 遷移評分 |
-| 追蹤數據點撚流 | `/trace-flow` + 起點描述 | 執行路徑圖 + 風險點 |
-| 頁面慢 | `/optimize` + 文件/組件 | Quick Win / Medium / Heavy 分類 |
-| 代碼太亂 | `/refactor` + 文件 | 重構建議 + 代碼 |
-| 想知兼唔兼容 | `/diagnose-compat` + 文件 | React/Node/Webpack 版本矩陣 |
-| 升級前檢查 | `/audit-deps` | 依賴 blocker 列表 |
-| 遷移一個文件 | `/migrate-react` + 文件 | 逐步遷移指導 |
-| Build 爆炸 | `/fix-build` + error | 診斷 + before/after fix |
-| 寫新功能 | `/tdd` + 功能描述 | 先寫 test 再寫 code |
-| 提 PR 前 | `/code-review` + 文件 | Quality checklist |
-| 寫 PR | `/pr-description` | 從 git diff 生成描述 |
-| 每日站會 | `/daily-standup` | 從 git log 生成 notes |
+GPT-4.1 is unlimited; GPT-5.x consumes premium tokens.
 
----
+| Use GPT-4.1 (unlimited) | Use GPT-5.x (premium) |
+|--------------------------|------------------------|
+| `/quick-fix`, `/debug` | `/trace-flow`, `/optimize` |
+| `/explain`, `/scan-file` | `/migrate-react`, `/diagnose-compat` |
+| `/daily-standup`, `/pr-description` | `/refactor`, `/audit-deps` |
 
-## GPT-5.x vs 4.1 策略
-
-Premium tokens 有限，要慳住用：
-
-| 用 4.1 (免費無限) | 用 5.x (premium) |
-|-------------------|-------------------|
-| `/quick-fix` | `/trace-flow` |
-| `/debug` | `/optimize` |
-| `/explain` | `/migrate-react` |
-| `/scan-file` | `/diagnose-compat` |
-| `/daily-standup` | `/refactor` |
-| `/pr-description` | `/audit-deps` |
-
-**原則：模式匹配型任務用 4.1，需要跨文件推理嘅用 5.x。**
+**Principle:** Pattern-matching tasks → 4.1. Cross-file reasoning → 5.x.

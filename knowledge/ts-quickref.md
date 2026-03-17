@@ -1,6 +1,6 @@
 # TypeScript for JS Developers — 速查
 
-> 你已有 5 年 JS 經驗。呢份唔係教程，係對照表。
+> 你已有 5 年 JS 經驗。这不是教程，是对照表。
 
 ## 基礎：JS → TS 對照
 
@@ -13,7 +13,7 @@ let items = ['a', 'b'];      let items: string[] = ['a', 'b'];
 let user = { name: 'Nic' };  let user: { name: string } = { name: 'Nic' };
 ```
 
-**重點：大部分情況 TS 會自動推斷，唔使寫類型。**
+**重点：大部分情况 TS 会自动推断，不需要写类型。**
 
 ## 函數
 ```typescript
@@ -70,7 +70,7 @@ const [count, setCount] = useState<number>(0);
 const [user, setUser] = useState<User | null>(null);  // 初始可能是 null
 ```
 
-## 你會常見嘅 TS 語法
+## 常见的 TS 语法
 
 ### interface vs type
 ```typescript
@@ -90,7 +90,7 @@ type Response = User | Error;
 
 ### Generics（遇到就知）
 ```typescript
-// 你見到 <T> 就係 generic — 像函數嘅「類型參數」
+// 你见到 <T> 就是 generic — 像函数的「类型参数」
 function first<T>(arr: T[]): T {
   return arr[0];
 }
@@ -134,15 +134,15 @@ Phase 3: 逐步遷移其他文件
 }
 ```
 
-## 遇到 TS Error 嘅生存指南
+## 遇到 TS Error 的生存指南
 
-| Error | 你嘅翻譯 | Fix |
-|-------|----------|-----|
-| `Type 'X' is not assignable to type 'Y'` | 類型唔 match | 檢查值嘅類型，加 assertion 或改 interface |
-| `Property 'x' does not exist on type 'Y'` | Object 冇呢個 field | 加到 interface 或用 optional chaining |
-| `Argument of type 'X' is not assignable` | 傳錯類型參數 | 檢查函數 signature |
-| `Object is possibly 'null'` | 可能係 null 你直接用 | 加 `if (x)` check 或 `x!`（確定唔係 null） |
-| `Cannot find module 'X'` | 冇 type 定義 | `npm install @types/X` |
+| Error | 含义 | Fix |
+|-------|------|-----|
+| `Type 'X' is not assignable to type 'Y'` | 类型不 match | 检查值的类型，加 assertion 或改 interface |
+| `Property 'x' does not exist on type 'Y'` | Object 没有这个 field | 加到 interface 或用 optional chaining |
+| `Argument of type 'X' is not assignable` | 传错类型参数 | 检查函数 signature |
+| `Object is possibly 'null'` | 可能是 null 你直接用 | 加 `if (x)` check 或 `x!`（确定不是 null） |
+| `Cannot find module 'X'` | 没有 type 定义 | `npm install @types/X` |
 
 ---
 
@@ -235,7 +235,7 @@ export interface User {
   createdAt: string;
 }
 
-// API response 可能同 User 唔完全一樣
+// API response 可能同 User 不完全一样
 export interface UserResponse {
   data: User;
   meta: {

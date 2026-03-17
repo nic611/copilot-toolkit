@@ -31,4 +31,4 @@ Generate standup notes from yesterday's work.
 - Keep it short — standup format, not essay
 - Group related commits
 - If there are dependency/migration blockers, highlight them
-- 唔好寫 "I worked on..." — 直接寫做咗咩
+- Do not write "I worked on..." — state what was done directly

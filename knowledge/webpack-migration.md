@@ -102,7 +102,7 @@ new ModuleFederationPlugin({
 
 ---
 
-## Rspack — Webpack 嘅 Rust 替代（Drop-in Replacement）
+## Rspack — Webpack 的 Rust 替代（Drop-in Replacement）
 
 > Webpack 5 config 幾乎直接搬過去。5-10x 更快 build。
 
@@ -185,15 +185,15 @@ module: {
 ### 遷移建議
 ```
 Webpack 4 → Webpack 5 → Rspack
-             ↑ 你而家做呢步    ↑ 下一步（成本極低）
+             ↑ 当前步骤       ↑ 下一步（成本极低）
 ```
-**先完成 Webpack 4→5，再換 Rspack。因為 Rspack 兼容 Webpack 5，唔兼容 4。**
+**先完成 Webpack 4→5，再换 Rspack。因为 Rspack 兼容 Webpack 5，不兼容 4。**
 
 ---
 
-## Vite — 完全唔同嘅 Build Tool
+## Vite — 完全不同的 Build Tool
 
-> 唔係 drop-in replacement。需要重寫 config，但 DX 質變。
+> 不是 drop-in replacement。需要重写 config，但 DX 质变。
 
 ### 為什麼考慮 Vite
 | | Webpack 5 / Rspack | Vite |
@@ -211,7 +211,7 @@ Webpack 4 → Webpack 5 → Rspack
 # 1. 安裝
 npm install -D vite @vitejs/plugin-react
 
-# 2. 建 vite.config.js（全新寫，唔係改 webpack config）
+# 2. 建 vite.config.js（全新写，不是改 webpack config）
 ```
 
 ```js
@@ -271,15 +271,15 @@ mv public/index.html ./index.html
 ### JSX 文件擴展名
 ```
 # Vite 比 Webpack 更嚴格
-# 用了 JSX 語法嘅文件必須係 .jsx 或 .tsx
-# .js 文件唔可以包含 JSX
+# 用了 JSX 语法的文件必须是 .jsx 或 .tsx
+# .js 文件不可以包含 JSX
 ```
 
 ### 常見 Error → Fix
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `process is not defined` | Vite 冇 Node globals | `process.env.X` → `import.meta.env.X` |
+| `process is not defined` | Vite 没有 Node globals | `process.env.X` → `import.meta.env.X` |
 | `require is not defined` | Vite = ESM only | 改用 `import` |
 | `Failed to resolve import` | 擴展名問題 | 確保 JSX 文件用 `.jsx` |
 | `[plugin:vite:import-analysis]` | CJS module | 加到 `optimizeDeps.include` |
@@ -296,7 +296,7 @@ Webpack 4 → Webpack 5 → Vite（高成本，但 DX 質變）
 2. **中期 (穩定後):** Webpack 5 → Rspack（幾乎零成本，5-10x 提速）
 3. **長期 (新項目):** 新項目直接用 Vite；舊項目評估遷移成本
 
-**揀 Rspack 定 Vite？**
+**选择 Rspack 还是 Vite？**
 - 舊項目 webpack config 複雜 → **Rspack**（改最少）
 - 新項目 / config 簡單 → **Vite**（DX 最好）
 - 需要 Module Federation → **Rspack**（Vite 支持較弱）

@@ -123,7 +123,7 @@ it('increments counter', () => {
   expect(wrapper.state('count')).toBe(1);
 });
 
-// RTL test (同一個 component，唔需要改 component code)
+// RTL test (同一个 component，不需要改 component code)
 it('increments counter', async () => {
   const user = userEvent.setup();
   render(<Counter />);
@@ -211,7 +211,7 @@ defineFeature(feature, (test) => {
 
 ## Vitest — 未來探索
 
-> Jest 替代。同 Vite 共享 config，速度更快。暫時唔急，但留意。
+> Jest 替代。同 Vite 共享 config，速度更快。暂时不急，但留意。
 
 ### Jest vs Vitest
 | | Jest | Vitest |
@@ -239,14 +239,14 @@ vi.mock('./api');
 ### 什麼時候換 Vitest
 - ✅ 新項目用 Vite → 直接用 Vitest
 - ✅ Jest 設置太複雜 / 太慢
-- ❌ 舊項目 Webpack + Jest 跑得好 → 暫時唔急換
+- ❌ 旧项目 Webpack + Jest 跑得好 → 暂时不急换
 - ❌ 大量 Jest snapshot tests → 遷移成本高
 
 ### 推薦路線
 ```
-現在:  Enzyme → RTL (用 Jest)     ← 你而家做呢步
+现在:  Enzyme → RTL (用 Jest)     ← 当前步骤
 之後:  如果換 Vite → 順便換 Vitest
-否則:  Jest 繼續用，冇問題
+否则:  Jest 继续用，没有问题
 ```
 
 ---
