@@ -115,6 +115,9 @@ cp knowledge/*.md /path/to/your-project/knowledge/
 | `vscode/settings-recommended.jsonc` | `.vscode/settings.json` | Copilot feature flags |
 | `vscode/snippets-react.json` | VS Code user snippets | Code input shortcuts |
 | `tools/audit-react16-api.sh` | Any location | React 16 deprecated API scanner |
+| `tools/dep-doctor/` | Any location | Dependency scanner + auto-fixer |
+| `tools/migration-cli/` | Any location | Step-by-step migration runner |
+| `gpt-prompts/*.md` | Reference only | Two-part prompts for GPT code generation |
 
 ---
 
