@@ -73,7 +73,12 @@ export async function checkCommand(options) {
   }
 
   // Check 5: Node version
-  const engines = JSON.parse(readFileSync(pkgPath, 'utf8')).engines;
+  let engines;
+  try {
+    engines = JSON.parse(readFileSync(pkgPath, 'utf8')).engines;
+  } catch {
+    engines = null;
+  }
   if (engines?.node) {
     const current = process.version.slice(1);
     checks.push({ name: `Node version (${engines.node})`, status: 'info', message: `Running ${current}` });

@@ -4,7 +4,12 @@ import { detectPackageManager } from '../infra/pm-detect.js';
 
 export function applyOverride(projectPath, packageName, overrideVersion, { dryRun = false } = {}) {
   const pkgJsonPath = join(projectPath, 'package.json');
-  const pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
+  let pkg;
+  try {
+    pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
+  } catch (err) {
+    return { success: false, error: `Cannot read package.json: ${err.message}` };
+  }
   const pm = detectPackageManager(projectPath);
 
   let overrideKey, overridePath;
@@ -54,7 +59,12 @@ export function applyOverride(projectPath, packageName, overrideVersion, { dryRu
 export function applyPeerDepOverride(projectPath, blockerPackage, peerDep, overrideVersion, { dryRun = false } = {}) {
   // For nested overrides: override a transitive dep's specific dependency
   const pkgJsonPath = join(projectPath, 'package.json');
-  const pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
+  let pkg;
+  try {
+    pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
+  } catch (err) {
+    return { success: false, error: `Cannot read package.json: ${err.message}` };
+  }
   const pm = detectPackageManager(projectPath);
 
   if (pm === 'pnpm') {
@@ -76,7 +86,7 @@ export function applyPeerDepOverride(projectPath, blockerPackage, peerDep, overr
       return { success: true, dryRun: true, change: { field: `overrides.${blockerPackage}`, package: peerDep, value: overrideVersion } };
     }
 
-    pkg.overrides[blockerPackage][peerDep] = `$${peerDep}`;
+    pkg.overrides[blockerPackage][peerDep] = overrideVersion;
   }
 
   writeFileSync(pkgJsonPath, JSON.stringify(pkg, null, 2) + '\n');

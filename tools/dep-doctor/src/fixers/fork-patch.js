@@ -65,7 +65,11 @@ npm test
     return { success: true, dryRun: true, file: guidePath };
   }
 
-  mkdirSync(outputDir, { recursive: true });
-  writeFileSync(guidePath, guide);
+  try {
+    mkdirSync(outputDir, { recursive: true });
+    writeFileSync(guidePath, guide);
+  } catch (err) {
+    return { success: false, error: `Failed to write fork-patch guide: ${err.message}` };
+  }
   return { success: true, file: guidePath };
 }

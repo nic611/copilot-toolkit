@@ -139,14 +139,11 @@ Summary: 142 packages │ 3 outdated │ 1 vulnerable │ 2 peerDep conflicts
 | peerDep analysis | Basic | Full conflict detection + blocking chain |
 | Code compat | — | Scans source for deprecated React APIs |
 
-## Known Issues
+## Known Limitations
 
-- Registry fetches are serial (should be parallel with concurrency limit)
-- `fix` command prints scan report even in silent mode
-- pnpm lockfile parser doesn't extract peerDependencies
-- `override-fixer.js` has a bug in peerDep override value
-
-See the source for details. PRs welcome.
+- Cache is saved after every fetch (batch save at exit would be more efficient)
+- Adapter output directory hardcoded to `src/adapters/`
+- No `--depth=direct` flag yet (scans all deps including transitive)
 
 ## License
 

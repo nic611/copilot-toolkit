@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { STRATEGIES } from '../fixers/strategy-engine.js';
 
 export function generateMigrationGuide(scanResult, outputPath) {
   const { projectName, plan, peerConflicts, compatFindings, vulnerabilities } = scanResult;
@@ -17,7 +18,7 @@ export function generateMigrationGuide(scanResult, outputPath) {
   ];
 
   // Phase 1: Safe upgrades
-  const safeUpgrades = plan.filter(p => p.strategy === 'safe-upgrade' && p.risk === 'low');
+  const safeUpgrades = plan.filter(p => p.strategy === STRATEGIES.SAFE_UPGRADE && p.risk === 'low');
   if (safeUpgrades.length) {
     sections.push('## Phase 1: Safe Upgrades (auto-apply)');
     sections.push('```bash');
@@ -30,7 +31,7 @@ export function generateMigrationGuide(scanResult, outputPath) {
   }
 
   // Phase 2: Overrides
-  const overrides = plan.filter(p => p.strategy === 'override');
+  const overrides = plan.filter(p => p.strategy === STRATEGIES.OVERRIDE);
   if (overrides.length) {
     sections.push('## Phase 2: Override PeerDep Conflicts');
     sections.push('Add to package.json:');
@@ -45,7 +46,7 @@ export function generateMigrationGuide(scanResult, outputPath) {
   }
 
   // Phase 3: Adapters
-  const adapters = plan.filter(p => p.strategy === 'adapter');
+  const adapters = plan.filter(p => p.strategy === STRATEGIES.ADAPTER);
   if (adapters.length) {
     sections.push('## Phase 3: Adapter Pattern');
     for (const a of adapters) {
@@ -58,7 +59,7 @@ export function generateMigrationGuide(scanResult, outputPath) {
   }
 
   // Phase 4: Major upgrades with codemods
-  const majors = plan.filter(p => p.strategy === 'major-upgrade');
+  const majors = plan.filter(p => p.strategy === STRATEGIES.MAJOR_UPGRADE);
   if (majors.length) {
     sections.push('## Phase 4: Major Upgrades (manual review required)');
     for (const m of majors) {

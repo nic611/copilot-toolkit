@@ -133,7 +133,7 @@ function decidePeerConflictStrategy(issue) {
       };
     }
 
-    if (deprecatedApiCount >= 10 && deprecatedApiCount < 50) {
+    if (deprecatedApiCount < 50) {
       return {
         package: name,
         strategy: STRATEGIES.ADAPTER,

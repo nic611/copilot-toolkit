@@ -5,11 +5,11 @@ import { applySafeUpgrade } from '../fixers/safe-upgrade.js';
 import { applyOverride, applyPeerDepOverride } from '../fixers/override-fixer.js';
 import { generateAdapter } from '../fixers/adapter-generator.js';
 import { generateForkPatchGuide } from '../fixers/fork-patch.js';
-import { runAllCodemods } from '../fixers/codemod-runner.js';
+// import { runAllCodemods } from '../fixers/codemod-runner.js'; // TODO: wire up MAJOR_UPGRADE strategy group
 import { generateMigrationGuide } from '../reporter/migration-guide.js';
 import { isGitRepo, isGitClean, gitCheckoutFiles } from '../infra/git-state.js';
 import { run } from '../infra/runner.js';
-import { detectPackageManager, getInstallCommand, getRunTestCommand } from '../infra/pm-detect.js';
+import { detectPackageManager, getInstallCommand, getRunTestCommand, getLockfileName } from '../infra/pm-detect.js';
 import * as terminal from '../reporter/terminal.js';
 
 export async function fixCommand(options) {
@@ -47,7 +47,7 @@ export async function fixCommand(options) {
   terminal.printPlan(plan);
 
   if (dryRun) {
-    console.log(`${dryRun ? '🏃 Dry run — no changes applied.\n' : ''}`);
+    console.log('🏃 Dry run — no changes applied.\n');
     // Generate migration guide even in dry-run
     const guidePath = join(projectPath, 'MIGRATION-GUIDE.md');
     generateMigrationGuide(scanResult, guidePath);
@@ -82,7 +82,7 @@ export async function fixCommand(options) {
     const testResult = run(getRunTestCommand(pm), projectPath, { silent: true });
     if (!testResult.success) {
       console.log('   ⚠️  Tests failed after safe upgrades. Rolling back...');
-      gitCheckoutFiles(projectPath, ['package.json', 'package-lock.json']);
+      gitCheckoutFiles(projectPath, ['package.json', getLockfileName(pm)]);
       run(getInstallCommand(pm), projectPath, { silent: true });
       results.applied = [];
       results.failed.push({ package: 'batch-safe-upgrade', error: 'Tests failed' });
@@ -102,12 +102,18 @@ export async function fixCommand(options) {
         if (result.success) {
           console.log(`   ✓ Override: ${action.package} → ${pc.peerDep}`);
           results.applied.push(action);
+        } else {
+          console.log(`   ✗ Override failed: ${action.package} — ${result.error}`);
+          results.failed.push({ ...action, error: result.error });
         }
       } else {
         const result = applyOverride(projectPath, action.package, 'latest');
         if (result.success) {
           console.log(`   ✓ Override: ${action.package}`);
           results.applied.push(action);
+        } else {
+          console.log(`   ✗ Override failed: ${action.package} — ${result.error}`);
+          results.failed.push({ ...action, error: result.error });
         }
       }
     }
@@ -127,6 +133,9 @@ export async function fixCommand(options) {
         console.log(`   ✓ Adapter: ${action.package} (${result.shimCount} shims)`);
         console.log(`     Files: ${result.files.join(', ')}`);
         results.applied.push(action);
+      } else {
+        console.log(`   ✗ Adapter failed: ${action.package} — ${result.error}`);
+        results.failed.push({ ...action, error: result.error });
       }
     }
   }
@@ -138,8 +147,13 @@ export async function fixCommand(options) {
     const guideDir = join(projectPath, 'docs', 'migration');
     for (const action of forkPatches) {
       const result = generateForkPatchGuide(action.package, scanResult.compatFindings, guideDir);
-      console.log(`   ✓ Guide: ${result.file}`);
-      results.applied.push(action);
+      if (result.success) {
+        console.log(`   ✓ Guide: ${result.file}`);
+        results.applied.push(action);
+      } else {
+        console.log(`   ✗ Guide failed: ${action.package} — ${result.error}`);
+        results.failed.push({ ...action, error: result.error });
+      }
     }
   }
 

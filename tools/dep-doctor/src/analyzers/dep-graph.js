@@ -104,14 +104,30 @@ function parsePnpmLock(lockPath, graph) {
         continue;
       }
 
-      if (currentPkg && line.includes('dependencies:')) continue;
+      if (currentPkg && line.match(/^\s{4}peerDependencies:/)) {
+        // Mark next indented block as peerDeps
+        currentPkg = `${currentPkg}:peer`;
+        continue;
+      }
+      if (currentPkg && line.match(/^\s{4}dependencies:/)) {
+        // Reset to normal deps (strip :peer suffix if present)
+        currentPkg = currentPkg.replace(/:peer$/, '');
+        continue;
+      }
       if (currentPkg && line.match(/^\s{6,}\S/)) {
         const depMatch = line.trim().match(/^['"]?([^:'"]+)['"]?:\s*['"]?([^'"]+)/);
         if (depMatch) {
-          const node = graph.nodes.get(currentPkg);
+          const isPeer = currentPkg.endsWith(':peer');
+          const pkgName = currentPkg.replace(/:peer$/, '');
+          const node = graph.nodes.get(pkgName);
           if (node) {
-            node.dependencies[depMatch[1]] = depMatch[2];
-            graph.edges.push({ from: currentPkg, to: depMatch[1], type: 'dependency' });
+            if (isPeer) {
+              node.peerDependencies[depMatch[1]] = depMatch[2];
+              graph.edges.push({ from: pkgName, to: depMatch[1], type: 'peerDependency' });
+            } else {
+              node.dependencies[depMatch[1]] = depMatch[2];
+              graph.edges.push({ from: pkgName, to: depMatch[1], type: 'dependency' });
+            }
           }
         }
       }

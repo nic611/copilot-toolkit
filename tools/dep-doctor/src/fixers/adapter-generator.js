@@ -166,9 +166,13 @@ export function generateAdapter(packageName, findings, outputDir, { dryRun = fal
     };
   }
 
-  mkdirSync(outputDir, { recursive: true });
-  writeFileSync(adapterPath, adapterCode.join('\n'));
-  writeFileSync(testPath, testCode.join('\n'));
+  try {
+    mkdirSync(outputDir, { recursive: true });
+    writeFileSync(adapterPath, adapterCode.join('\n'));
+    writeFileSync(testPath, testCode.join('\n'));
+  } catch (err) {
+    return { success: false, error: `Failed to write adapter files: ${err.message}` };
+  }
 
   return {
     success: true,

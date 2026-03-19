@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { detectPackageManager } from '../infra/pm-detect.js';
-import { fetchPackageInfo, classifyUpgrade, parseSemver } from '../infra/registry.js';
+import { fetchPackageInfo, classifyUpgrade } from '../infra/registry.js';
 import { buildDependencyGraph } from '../analyzers/dep-graph.js';
 import { detectPeerConflicts } from '../analyzers/peer-conflicts.js';
 import { parseVulnReport, groupVulnsByPackage, getHighestSeverity } from '../analyzers/vuln-parser.js';
@@ -42,30 +42,47 @@ export async function scanCommand(options) {
     process.stdout.write('  Checking registry');
   }
 
-  for (const [name, range] of Object.entries(allDeps)) {
-    try {
-      const info = await fetchPackageInfo(name);
-      const currentVersion = range.replace(/^[\^~>=<\s]+/, '');
-      const current = parseSemver(currentVersion);
-      const latest = parseSemver(info.latestVersion);
+  const CONCURRENCY = 10;
+  const entries = Object.entries(allDeps);
+  const skipped = [];
 
-      if (options.format === 'terminal') process.stdout.write('.');
+  for (let i = 0; i < entries.length; i += CONCURRENCY) {
+    const batch = entries.slice(i, i + CONCURRENCY);
+    const results = await Promise.allSettled(
+      batch.map(async ([name, range]) => {
+        const info = await fetchPackageInfo(name);
+        const currentVersion = range.replace(/^[\^~>=<\s]+/, '');
 
-      const upgradeType = classifyUpgrade(currentVersion, info.latestVersion);
-      if (upgradeType !== 'current') {
-        outdated.push({
-          name,
-          current: currentVersion,
-          latest: info.latestVersion,
-          upgradeType,
-          lastPublish: info.lastPublish,
-          deprecated: info.deprecated,
-          peerDependencies: info.peerDependencies,
-        });
+        if (options.format === 'terminal') process.stdout.write('.');
+
+        const upgradeType = classifyUpgrade(currentVersion, info.latestVersion);
+        if (upgradeType !== 'current') {
+          return {
+            name,
+            current: currentVersion,
+            latest: info.latestVersion,
+            upgradeType,
+            lastPublish: info.lastPublish,
+            deprecated: info.deprecated,
+            peerDependencies: info.peerDependencies,
+          };
+        }
+        return null;
+      })
+    );
+
+    for (let j = 0; j < results.length; j++) {
+      const r = results[j];
+      if (r.status === 'fulfilled' && r.value) {
+        outdated.push(r.value);
+      } else if (r.status === 'rejected') {
+        skipped.push(batch[j][0]);
       }
-    } catch {
-      // Skip packages that can't be fetched (private, scoped, etc.)
     }
+  }
+
+  if (skipped.length && options.format === 'terminal') {
+    console.log(`\n  ⚠️  Skipped ${skipped.length} packages (private/unreachable): ${skipped.slice(0, 5).join(', ')}${skipped.length > 5 ? '...' : ''}`);
   }
 
   if (options.format === 'terminal') console.log(' done\n');
@@ -99,7 +116,7 @@ export async function scanCommand(options) {
   // Output
   if (options.format === 'json') {
     console.log(formatAsJson(result));
-  } else {
+  } else if (options.format !== 'silent') {
     terminal.printDependencyTable(
       outdated.filter(d => d.upgradeType === 'major'),
       'Major Updates'
